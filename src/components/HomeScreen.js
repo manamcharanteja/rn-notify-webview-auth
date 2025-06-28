@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 
-const HomeScreen = ({ user, onOpenWebView, onViewProfile, onLogout }) => {
+const HomeScreen = ({ user, onOpenWebView, onViewProfile, onLogout, onOpenNotificationTest }) => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
@@ -61,6 +61,19 @@ const HomeScreen = ({ user, onOpenWebView, onViewProfile, onLogout }) => {
             <View style={styles.actionContent}>
               <Text style={styles.actionTitle}>View Profile</Text>
               <Text style={styles.actionDescription}>See your account details</Text>
+            </View>
+            <Text style={styles.actionArrow}>→</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.actionCard} 
+            onPress={onOpenNotificationTest}
+            activeOpacity={0.8}
+          >
+            <View style={styles.actionIcon}>🔔</View>
+            <View style={styles.actionContent}>
+              <Text style={styles.actionTitle}>Test Notifications</Text>
+              <Text style={styles.actionDescription}>Send and manage push notifications</Text>
             </View>
             <Text style={styles.actionArrow}>→</Text>
           </TouchableOpacity>

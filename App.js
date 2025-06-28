@@ -16,7 +16,10 @@ import WebViewComponent from './src/components/WebViewComponent';
 import LoginScreen from './src/components/LoginScreen';
 import UserProfile from './src/components/UserProfile';
 import HomeScreen from './src/components/HomeScreen';
+import NotificationTest from './src/components/NotificationTest';
+import NotificationDisplay from './src/components/NotificationDisplay';
 import { AuthProvider, useAuthContext } from './src/context/AuthContext';
+import { NotificationProvider } from './src/context/NotificationContext';
 
 // Main App Component
 const AppContent = () => {
@@ -63,17 +66,25 @@ const AppContent = () => {
     return <UserProfile user={user} onLogout={handleLogout} onBack={() => setShowWebView(false)} />;
   }
 
+  if (showWebView === 'notifications') {
+    return <NotificationTest onBack={() => setShowWebView(false)} />;
+  }
+
   if (showWebView) {
     return <WebViewComponent onClose={handleCloseWebView} />;
   }
 
   return (
-    <HomeScreen 
-      user={user}
-      onOpenWebView={handleShowWebView}
-      onViewProfile={() => setShowWebView('profile')}
-      onLogout={handleLogout}
-    />
+    <>
+      <NotificationDisplay />
+      <HomeScreen 
+        user={user}
+        onOpenWebView={handleShowWebView}
+        onViewProfile={() => setShowWebView('profile')}
+        onOpenNotificationTest={() => setShowWebView('notifications')}
+        onLogout={handleLogout}
+      />
+    </>
   );
 };
 
@@ -81,7 +92,9 @@ const AppContent = () => {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <NotificationProvider>
+        <AppContent />
+      </NotificationProvider>
     </AuthProvider>
   );
 }

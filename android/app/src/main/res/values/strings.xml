@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">RNNotifyWebviewAuth</string>
+    <string name="default_notification_channel_id">default-channel-id</string>
+    <string name="default_notification_channel_name">Default channel</string>
+    <string name="default_notification_channel_description">A default channel for notifications</string>
 </resources>

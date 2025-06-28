@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<notification-config>
+    <channel id="default-channel-id" 
+             name="Default channel" 
+             description="A default channel for notifications"
+             importance="high"
+             sound="default"
+             vibration="true"
+             vibrationPattern="0,300,100,300"
+             lightColor="#007AFF"
+             lightOnMs="1000"
+             lightOffMs="1000" />
+</notification-config> 
