@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -11,73 +11,98 @@ import { WebView } from 'react-native-webview';
 
 const WEB_URL = 'https://google.com';
 
-const WebViewComponent = ({ onClose }) => {
+// Memoized Header Component
+const WebViewHeader = React.memo(({ onClose }) => (
+  <View style={styles.header}>
+    <Text style={styles.headerText}>Web View</Text>
+    <TouchableOpacity onPress={onClose} accessibilityLabel="Close WebView">
+      <Text style={styles.closeButton}>✕</Text>
+    </TouchableOpacity>
+  </View>
+));
+
+// Memoized Loading Component
+const LoadingOverlay = React.memo(() => (
+  <View style={styles.loadingContainer}>
+    <ActivityIndicator size="large" color="#007AFF" />
+    <Text style={styles.loadingText}>Loading...</Text>
+  </View>
+));
+
+// Memoized Error Component
+const ErrorOverlay = React.memo(({ onRetry }) => (
+  <View style={styles.errorContainer}>
+    <Text style={styles.errorText}>Failed to load the page</Text>
+    <Text style={styles.errorSubText}>Please check your internet connection</Text>
+    <TouchableOpacity
+      style={styles.retryButton}
+      onPress={onRetry}
+    >
+      <Text style={styles.retryButtonText}>Retry</Text>
+    </TouchableOpacity>
+  </View>
+));
+
+// Memoized WebView Component
+const WebViewContent = React.memo(({ onLoadStart, onLoadEnd, onError }) => (
+  <WebView
+    source={{ uri: WEB_URL }}
+    style={styles.webView}
+    onLoadStart={onLoadStart}
+    onLoadEnd={onLoadEnd}
+    onError={onError}
+    javaScriptEnabled
+    domStorageEnabled
+    startInLoadingState
+  />
+));
+
+// Main WebViewComponent
+const WebViewComponent = React.memo(({ onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  const handleLoadStart = () => {
+  // Memoized callback functions
+  const handleLoadStart = useCallback(() => {
     setIsLoading(true);
     setHasError(false);
-  };
+  }, []);
 
-  const handleLoadEnd = () => {
+  const handleLoadEnd = useCallback(() => {
     setIsLoading(false);
-  };
+  }, []);
 
-  const handleError = (syntheticEvent) => {
+  const handleError = useCallback((syntheticEvent) => {
     setIsLoading(false);
     setHasError(true);
-  };
+  }, []);
+
+  const handleRetry = useCallback(() => {
+    setHasError(false);
+    setIsLoading(true);
+  }, []);
+
+  // Memoized webview props
+  const webViewProps = useMemo(() => ({
+    onLoadStart: handleLoadStart,
+    onLoadEnd: handleLoadEnd,
+    onError: handleError,
+  }), [handleLoadStart, handleLoadEnd, handleError]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Web View</Text>
-        <TouchableOpacity onPress={onClose} accessibilityLabel="Close WebView">
-          <Text style={styles.closeButton}>✕</Text>
-        </TouchableOpacity>
-      </View>
-
+      <WebViewHeader onClose={onClose} />
+      
       <View style={styles.webViewContainer}>
-        {!hasError && (
-          <WebView
-            source={{ uri: WEB_URL }}
-            style={styles.webView}
-            onLoadStart={handleLoadStart}
-            onLoadEnd={handleLoadEnd}
-            onError={handleError}
-            javaScriptEnabled
-            domStorageEnabled
-            startInLoadingState
-          />
-        )}
-
-        {isLoading && !hasError && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
-            <Text style={styles.loadingText}>Loading...</Text>
-          </View>
-        )}
-
-        {hasError && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>Failed to load the page</Text>
-            <Text style={styles.errorSubText}>Please check your internet connection</Text>
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={() => {
-                setHasError(false);
-                setIsLoading(true);
-              }}
-            >
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {!hasError && <WebViewContent {...webViewProps} />}
+        
+        {isLoading && !hasError && <LoadingOverlay />}
+        
+        {hasError && <ErrorOverlay onRetry={handleRetry} />}
       </View>
     </SafeAreaView>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

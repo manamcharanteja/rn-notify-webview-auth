@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,11 +11,122 @@ import {
 } from 'react-native';
 import { useAuthContext } from '../context/AuthContext';
 
-const UserProfile = ({ user, onLogout, onBack }) => {
+// Memoized Header Component
+const ProfileHeader = React.memo(({ onBack }) => (
+  <View style={styles.header}>
+    <TouchableOpacity style={styles.backButton} onPress={onBack}>
+      <Text style={styles.backButtonText}>←</Text>
+    </TouchableOpacity>
+    <View style={styles.headerContent}>
+      <Text style={styles.title}>User Profile</Text>
+      <Text style={styles.subtitle}>OIDC Authentication Success</Text>
+    </View>
+    <View style={styles.placeholder} />
+  </View>
+));
+
+// Memoized Profile Card Component
+const ProfileCard = React.memo(({ user }) => (
+  <View style={styles.profileCard}>
+    <View style={styles.avatarContainer}>
+      <Image
+        source={{ uri: user.picture }}
+        style={styles.avatar}
+      />
+    </View>
+
+    <View style={styles.userInfo}>
+      <Text style={styles.userName}>{user.name}</Text>
+      <Text style={styles.userEmail}>{user.email}</Text>
+      <View style={styles.verificationBadge}>
+        <Text style={styles.verificationText}>
+          {user.email_verified ? '✓ Email Verified' : '✗ Email Not Verified'}
+        </Text>
+      </View>
+    </View>
+  </View>
+));
+
+// Memoized Detail Row Component
+const DetailRow = React.memo(({ label, value }) => (
+  <View style={styles.detailRow}>
+    <Text style={styles.detailLabel}>{label}:</Text>
+    <Text style={styles.detailValue}>{value}</Text>
+  </View>
+));
+
+// Memoized Details Card Component
+const DetailsCard = React.memo(({ user }) => {
+  const details = useMemo(() => [
+    { label: 'User ID', value: user.id },
+    { label: 'Given Name', value: user.given_name },
+    { label: 'Family Name', value: user.family_name },
+    { label: 'Subject (sub)', value: user.sub },
+  ], [user]);
+
+  return (
+    <View style={styles.detailsCard}>
+      <Text style={styles.sectionTitle}>User Details</Text>
+      {details.map((detail, index) => (
+        <DetailRow key={index} {...detail} />
+      ))}
+    </View>
+  );
+});
+
+// Memoized Token Card Component
+const TokenCard = React.memo(({ getAccessToken, refreshAccessToken }) => {
+  const formatToken = useCallback((token) => {
+    if (!token) return 'No token available';
+    return token.length > 20 ? `${token.substring(0, 20)}...` : token;
+  }, []);
+
+  const handleRefreshToken = useCallback(async () => {
+    try {
+      await refreshAccessToken();
+      Alert.alert('Success', 'Token refreshed successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to refresh token');
+    }
+  }, [refreshAccessToken]);
+
+  return (
+    <View style={styles.tokenCard}>
+      <Text style={styles.sectionTitle}>Access Token</Text>
+      <Text style={styles.tokenText}>
+        {formatToken(getAccessToken())}
+      </Text>
+      <TouchableOpacity
+        style={styles.refreshButton}
+        onPress={handleRefreshToken}
+      >
+        <Text style={styles.refreshButtonText}>Refresh Token</Text>
+      </TouchableOpacity>
+    </View>
+  );
+});
+
+// Memoized Logout Button Component
+const LogoutButton = React.memo(({ onPress, isLoggingOut }) => (
+  <TouchableOpacity
+    style={[styles.logoutButton, isLoggingOut && styles.logoutButtonDisabled]}
+    onPress={onPress}
+    disabled={isLoggingOut}
+  >
+    {isLoggingOut ? (
+      <ActivityIndicator color="#ffffff" />
+    ) : (
+      <Text style={styles.logoutButtonText}>Sign Out</Text>
+    )}
+  </TouchableOpacity>
+));
+
+// Main UserProfile Component
+const UserProfile = React.memo(({ user, onLogout, onBack }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { logout, getAccessToken, refreshAccessToken } = useAuthContext();
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     Alert.alert(
       'Confirm Logout',
       'Are you sure you want to sign out?',
@@ -41,105 +152,25 @@ const UserProfile = ({ user, onLogout, onBack }) => {
         },
       ]
     );
-  };
+  }, [logout, onLogout]);
 
-  const formatToken = (token) => {
-    if (!token) return 'No token available';
-    return token.length > 20 ? `${token.substring(0, 20)}...` : token;
-  };
+  // Memoized props
+  const tokenCardProps = useMemo(() => ({
+    getAccessToken,
+    refreshAccessToken,
+  }), [getAccessToken, refreshAccessToken]);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={onBack}>
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={styles.title}>User Profile</Text>
-            <Text style={styles.subtitle}>OIDC Authentication Success</Text>
-          </View>
-          <View style={styles.placeholder} />
-        </View>
-
-        <View style={styles.profileCard}>
-          <View style={styles.avatarContainer}>
-            <Image
-              source={{ uri: user.picture }}
-              style={styles.avatar}
-            />
-          </View>
-
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user.name}</Text>
-            <Text style={styles.userEmail}>{user.email}</Text>
-            <View style={styles.verificationBadge}>
-              <Text style={styles.verificationText}>
-                {user.email_verified ? '✓ Email Verified' : '✗ Email Not Verified'}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.detailsCard}>
-          <Text style={styles.sectionTitle}>User Details</Text>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>User ID:</Text>
-            <Text style={styles.detailValue}>{user.id}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Given Name:</Text>
-            <Text style={styles.detailValue}>{user.given_name}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Family Name:</Text>
-            <Text style={styles.detailValue}>{user.family_name}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Subject (sub):</Text>
-            <Text style={styles.detailValue}>{user.sub}</Text>
-          </View>
-        </View>
-
-        <View style={styles.tokenCard}>
-          <Text style={styles.sectionTitle}>Access Token</Text>
-          <Text style={styles.tokenText}>
-            {formatToken(getAccessToken())}
-          </Text>
-          <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={async () => {
-              try {
-                await refreshAccessToken();
-                Alert.alert('Success', 'Token refreshed successfully!');
-              } catch (error) {
-                Alert.alert('Error', 'Failed to refresh token');
-              }
-            }}
-          >
-            <Text style={styles.refreshButtonText}>Refresh Token</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.logoutButton, isLoggingOut && styles.logoutButtonDisabled]}
-          onPress={handleLogout}
-          disabled={isLoggingOut}
-        >
-          {isLoggingOut ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.logoutButtonText}>Sign Out</Text>
-          )}
-        </TouchableOpacity>
+        <ProfileHeader onBack={onBack} />
+        <ProfileCard user={user} />
+        <DetailsCard user={user} />
+        <LogoutButton onPress={handleLogout} isLoggingOut={isLoggingOut} />
       </View>
     </SafeAreaView>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -202,7 +233,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 3,
   },
   avatarContainer: {
     alignItems: 'center',
@@ -222,21 +253,21 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333333',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   userEmail: {
     fontSize: 16,
     color: '#666666',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   verificationBadge: {
     backgroundColor: '#e8f5e8',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   verificationText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#2e7d32',
     fontWeight: '600',
   },
@@ -252,10 +283,10 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 3,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333333',
     marginBottom: 16,
@@ -264,25 +295,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
   detailLabel: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#666666',
     fontWeight: '500',
   },
   detailValue: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#333333',
     fontWeight: '600',
+    flex: 1,
+    textAlign: 'right',
+    marginLeft: 16,
   },
   tokenCard: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 20,
-    marginBottom: 30,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -290,29 +324,26 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 3,
   },
   tokenText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666666',
     fontFamily: 'monospace',
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#f5f5f5',
     padding: 12,
-    borderRadius: 6,
-    marginBottom: 12,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   refreshButton: {
-    backgroundColor: '#f0f8ff',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-    borderRadius: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   refreshButtonText: {
-    color: '#007AFF',
-    fontSize: 14,
+    color: '#ffffff',
+    fontSize: 16,
     fontWeight: '600',
   },
   logoutButton: {
@@ -320,7 +351,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',
-    marginBottom: 20,
+    marginTop: 20,
   },
   logoutButtonDisabled: {
     backgroundColor: '#cccccc',

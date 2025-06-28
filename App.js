@@ -5,7 +5,7 @@
  * @format
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -21,53 +21,85 @@ import NotificationDisplay from './src/components/NotificationDisplay';
 import { AuthProvider, useAuthContext } from './src/context/AuthContext';
 import { NotificationProvider } from './src/context/NotificationContext';
 
+// Memoized Loading Component
+const LoadingScreen = React.memo(() => (
+  <SafeAreaView style={styles.container}>
+    <View style={styles.loadingContainer}>
+      <Text style={styles.loadingText}>Loading...</Text>
+    </View>
+  </SafeAreaView>
+));
+
 // Main App Component
-const AppContent = () => {
+const AppContent = React.memo(() => {
   const [showWebView, setShowWebView] = useState(false);
   const { 
     isAuthenticated, 
     user, 
     isLoading, 
-    login, 
     logout 
   } = useAuthContext();
 
-  const handleLoginSuccess = (userData) => {
-    // Login is handled by the auth context
-  };
-
-  const handleLogout = () => {
+  // Memoized callback functions to prevent re-renders
+  const handleLogout = useCallback(() => {
     logout();
-  };
+  }, [logout]);
 
-  const handleShowWebView = () => {
+  const handleShowWebView = useCallback(() => {
     setShowWebView(true);
-  };
+  }, []);
 
-  const handleCloseWebView = () => {
+  const handleCloseWebView = useCallback(() => {
     setShowWebView(false);
-  };
+  }, []);
+
+  const handleViewProfile = useCallback(() => {
+    setShowWebView('profile');
+  }, []);
+
+  const handleOpenNotificationTest = useCallback(() => {
+    setShowWebView('notifications');
+  }, []);
+
+  const handleBack = useCallback(() => {
+    setShowWebView(false);
+  }, []);
+
+  // Memoized user props to prevent unnecessary re-renders
+  const userProps = useMemo(() => ({
+    user,
+    onOpenWebView: handleShowWebView,
+    onViewProfile: handleViewProfile,
+    onOpenNotificationTest: handleOpenNotificationTest,
+    onLogout: handleLogout,
+  }), [user, handleShowWebView, handleViewProfile, handleOpenNotificationTest, handleLogout]);
+
+  // Memoized profile props
+  const profileProps = useMemo(() => ({
+    user,
+    onLogout: handleLogout,
+    onBack: handleBack,
+  }), [user, handleLogout, handleBack]);
+
+  // Memoized notification test props
+  const notificationTestProps = useMemo(() => ({
+    onBack: handleBack,
+  }), [handleBack]);
 
   if (isLoading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return <LoadingScreen />;
   }
 
   if (!isAuthenticated) {
-    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+    return <LoginScreen />;
   }
 
   if (showWebView === 'profile') {
-    return <UserProfile user={user} onLogout={handleLogout} onBack={() => setShowWebView(false)} />;
+    return <UserProfile {...profileProps} />;
   }
 
   if (showWebView === 'notifications') {
-    return <NotificationTest onBack={() => setShowWebView(false)} />;
+    return <NotificationTest {...notificationTestProps} />;
   }
 
   if (showWebView) {
@@ -77,19 +109,13 @@ const AppContent = () => {
   return (
     <>
       <NotificationDisplay />
-      <HomeScreen 
-        user={user}
-        onOpenWebView={handleShowWebView}
-        onViewProfile={() => setShowWebView('profile')}
-        onOpenNotificationTest={() => setShowWebView('notifications')}
-        onLogout={handleLogout}
-      />
+      <HomeScreen {...userProps} />
     </>
   );
-};
+});
 
 // Root App Component with AuthProvider
-function App() {
+const App = React.memo(() => {
   return (
     <AuthProvider>
       <NotificationProvider>
@@ -97,7 +123,7 @@ function App() {
       </NotificationProvider>
     </AuthProvider>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

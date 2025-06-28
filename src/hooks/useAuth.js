@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 // Simulated OIDC Authentication Hook
 const useAuth = () => {
@@ -163,7 +163,8 @@ const useAuth = () => {
     console.log('Clearing stored data');
   };
 
-  return {
+  // Memoize the return object to prevent unnecessary re-renders
+  const authObject = useMemo(() => ({
     // State
     isAuthenticated,
     user,
@@ -181,7 +182,22 @@ const useAuth = () => {
     getCurrentUser,
     isUserAuthenticated,
     getAccessToken,
-  };
+  }), [
+    isAuthenticated,
+    user,
+    accessToken,
+    refreshToken,
+    isLoading,
+    login,
+    logout,
+    refreshAccessToken,
+    checkExistingSession,
+    getCurrentUser,
+    isUserAuthenticated,
+    getAccessToken,
+  ]);
+
+  return authObject;
 };
 
 export default useAuth; 

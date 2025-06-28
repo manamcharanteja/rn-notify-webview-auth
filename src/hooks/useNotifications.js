@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import PushNotification from 'react-native-push-notification';
 import { Platform } from 'react-native';
 
@@ -152,7 +152,8 @@ const useNotifications = () => {
     requestPermissions();
   }, [initializeNotifications, requestPermissions]);
 
-  return {
+  // Memoize the return object to prevent unnecessary re-renders
+  const notificationsObject = useMemo(() => ({
     // State
     latestNotification,
     deviceToken,
@@ -168,7 +169,20 @@ const useNotifications = () => {
     // Getters
     getBadgeCount,
     setBadgeCount,
-  };
+  }), [
+    latestNotification,
+    deviceToken,
+    isPermissionGranted,
+    sendLocalNotification,
+    scheduleLocalNotification,
+    cancelAllNotifications,
+    clearLatestNotification,
+    requestPermissions,
+    getBadgeCount,
+    setBadgeCount,
+  ]);
+
+  return notificationsObject;
 };
 
 export default useNotifications; 

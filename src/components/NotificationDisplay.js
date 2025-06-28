@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,68 +11,105 @@ import { useNotificationContext } from '../context/NotificationContext';
 
 const { width } = Dimensions.get('window');
 
-const NotificationDisplay = () => {
+// Memoized utility functions
+const formatTime = (timestamp) => {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+const getNotificationType = (notification) => {
+  if (notification.foreground) return 'Foreground';
+  if (notification.userInteraction) return 'Tapped';
+  return 'Background';
+};
+
+// Memoized Header Component
+const NotificationHeader = React.memo(({ notification }) => (
+  <View style={styles.header}>
+    <View style={styles.typeBadge}>
+      <Text style={styles.typeText}>
+        {getNotificationType(notification)}
+      </Text>
+    </View>
+    <Text style={styles.timeText}>
+      {formatTime(notification.date)}
+    </Text>
+  </View>
+));
+
+// Memoized Content Component
+const NotificationContent = React.memo(({ notification }) => (
+  <View style={styles.content}>
+    <Text style={styles.title}>
+      {notification.title || 'Notification'}
+    </Text>
+    <Text style={styles.message}>
+      {notification.message || 'No message'}
+    </Text>
+  </View>
+));
+
+// Memoized Data Section Component
+const NotificationData = React.memo(({ notification }) => {
+  const hasData = notification.data && Object.keys(notification.data).length > 0;
+  
+  if (!hasData) return null;
+  
+  return (
+    <View style={styles.dataSection}>
+      <Text style={styles.dataTitle}>Additional Data:</Text>
+      <Text style={styles.dataText}>
+        {JSON.stringify(notification.data, null, 2)}
+      </Text>
+    </View>
+  );
+});
+
+// Memoized Actions Component
+const NotificationActions = React.memo(({ onClear }) => (
+  <View style={styles.actions}>
+    <TouchableOpacity
+      style={styles.clearButton}
+      onPress={onClear}
+    >
+      <Text style={styles.clearButtonText}>Clear</Text>
+    </TouchableOpacity>
+  </View>
+));
+
+// Memoized Notification Card Component
+const NotificationCard = React.memo(({ notification, onClear }) => (
+  <View style={styles.notificationCard}>
+    <NotificationHeader notification={notification} />
+    <NotificationContent notification={notification} />
+    <NotificationData notification={notification} />
+    <NotificationActions onClear={onClear} />
+  </View>
+));
+
+// Main NotificationDisplay Component
+const NotificationDisplay = React.memo(() => {
   const { latestNotification, clearLatestNotification } = useNotificationContext();
 
+  // Memoized clear function
+  const handleClear = useCallback(() => {
+    clearLatestNotification();
+  }, [clearLatestNotification]);
+
+  // Early return if no notification
   if (!latestNotification) {
     return null;
   }
 
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const getNotificationType = (notification) => {
-    if (notification.foreground) return 'Foreground';
-    if (notification.userInteraction) return 'Tapped';
-    return 'Background';
-  };
-
   return (
     <Animated.View style={styles.container}>
-      <View style={styles.notificationCard}>
-        <View style={styles.header}>
-          <View style={styles.typeBadge}>
-            <Text style={styles.typeText}>
-              {getNotificationType(latestNotification)}
-            </Text>
-          </View>
-          <Text style={styles.timeText}>
-            {formatTime(latestNotification.date)}
-          </Text>
-        </View>
-
-        <View style={styles.content}>
-          <Text style={styles.title}>
-            {latestNotification.title || 'Notification'}
-          </Text>
-          <Text style={styles.message}>
-            {latestNotification.message || 'No message'}
-          </Text>
-        </View>
-
-        {latestNotification.data && Object.keys(latestNotification.data).length > 0 && (
-          <View style={styles.dataSection}>
-            <Text style={styles.dataTitle}>Additional Data:</Text>
-            <Text style={styles.dataText}>
-              {JSON.stringify(latestNotification.data, null, 2)}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={clearLatestNotification}
-          >
-            <Text style={styles.clearButtonText}>Clear</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <NotificationCard 
+        notification={latestNotification} 
+        onClear={handleClear} 
+      />
     </Animated.View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,112 +8,144 @@ import {
   ScrollView,
 } from 'react-native';
 
-const HomeScreen = ({ user, onOpenWebView, onViewProfile, onLogout, onOpenNotificationTest }) => {
+// Memoized Header Component
+const Header = React.memo(({ user, onViewProfile }) => (
+  <View style={styles.header}>
+    <View style={styles.userInfo}>
+      <Text style={styles.greeting}>Good morning, {user?.given_name}!</Text>
+      <Text style={styles.subtitle}>Welcome to your dashboard</Text>
+    </View>
+    <TouchableOpacity style={styles.profileButton} onPress={onViewProfile}>
+      <Text style={styles.profileButtonText}>👤</Text>
+    </TouchableOpacity>
+  </View>
+));
+
+// Memoized Stats Component
+const StatsSection = React.memo(() => (
+  <View style={styles.statsContainer}>
+    <View style={styles.statCard}>
+      <Text style={styles.statNumber}>1</Text>
+      <Text style={styles.statLabel}>Active Session</Text>
+    </View>
+    <View style={styles.statCard}>
+      <Text style={styles.statNumber}>✓</Text>
+      <Text style={styles.statLabel}>Authenticated</Text>
+    </View>
+  </View>
+));
+
+// Memoized Action Card Component
+const ActionCard = React.memo(({ icon, title, description, onPress }) => (
+  <TouchableOpacity 
+    style={styles.actionCard} 
+    onPress={onPress}
+    activeOpacity={0.8}
+  >
+    <View style={styles.actionIcon}>{icon}</View>
+    <View style={styles.actionContent}>
+      <Text style={styles.actionTitle}>{title}</Text>
+      <Text style={styles.actionDescription}>{description}</Text>
+    </View>
+    <Text style={styles.actionArrow}>→</Text>
+  </TouchableOpacity>
+));
+
+// Memoized Actions Section
+const ActionsSection = React.memo(({ onOpenWebView, onViewProfile, onOpenNotificationTest }) => {
+  const actions = useMemo(() => [
+    {
+      icon: '🌐',
+      title: 'Open Web View',
+      description: 'Browse Google in the app',
+      onPress: onOpenWebView,
+    },
+    {
+      icon: '👤',
+      title: 'View Profile',
+      description: 'See your account details',
+      onPress: onViewProfile,
+    },
+    {
+      icon: '🔔',
+      title: 'Test Notifications',
+      description: 'Send and manage push notifications',
+      onPress: onOpenNotificationTest,
+    },
+  ], [onOpenWebView, onViewProfile, onOpenNotificationTest]);
+
+  return (
+    <View style={styles.actionsContainer}>
+      <Text style={styles.sectionTitle}>Quick Actions</Text>
+      {actions.map((action, index) => (
+        <ActionCard key={index} {...action} />
+      ))}
+    </View>
+  );
+});
+
+// Memoized User Info Card Component
+const UserInfoCard = React.memo(({ user }) => (
+  <View style={styles.userCard}>
+    <Text style={styles.sectionTitle}>Account Information</Text>
+    <View style={styles.userDetail}>
+      <Text style={styles.userDetailLabel}>Email:</Text>
+      <Text style={styles.userDetailValue}>{user?.email}</Text>
+    </View>
+    <View style={styles.userDetail}>
+      <Text style={styles.userDetailLabel}>Name:</Text>
+      <Text style={styles.userDetailValue}>{user?.name}</Text>
+    </View>
+    <View style={styles.userDetail}>
+      <Text style={styles.userDetailLabel}>Status:</Text>
+      <View style={styles.statusBadge}>
+        <Text style={styles.statusText}>
+          {user?.email_verified ? '✓ Verified' : '✗ Not Verified'}
+        </Text>
+      </View>
+    </View>
+  </View>
+));
+
+// Memoized Logout Section
+const LogoutSection = React.memo(({ onLogout }) => (
+  <View style={styles.logoutSection}>
+    <TouchableOpacity 
+      style={styles.logoutButton} 
+      onPress={onLogout}
+      activeOpacity={0.8}
+    >
+      <Text style={styles.logoutButtonText}>Sign Out</Text>
+    </TouchableOpacity>
+  </View>
+));
+
+// Main HomeScreen Component
+const HomeScreen = React.memo(({ user, onOpenWebView, onViewProfile, onLogout, onOpenNotificationTest }) => {
+  // Memoized props to prevent unnecessary re-renders
+  const headerProps = useMemo(() => ({
+    user,
+    onViewProfile,
+  }), [user, onViewProfile]);
+
+  const actionsProps = useMemo(() => ({
+    onOpenWebView,
+    onViewProfile,
+    onOpenNotificationTest,
+  }), [onOpenWebView, onViewProfile, onOpenNotificationTest]);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        {/* Header Section */}
-        <View style={styles.header}>
-          <View style={styles.userInfo}>
-            <Text style={styles.greeting}>Good morning, {user?.given_name}!</Text>
-            <Text style={styles.subtitle}>Welcome to your dashboard</Text>
-          </View>
-          <TouchableOpacity style={styles.profileButton} onPress={onViewProfile}>
-            <Text style={styles.profileButtonText}>👤</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Quick Stats */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>1</Text>
-            <Text style={styles.statLabel}>Active Session</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>✓</Text>
-            <Text style={styles.statLabel}>Authenticated</Text>
-          </View>
-        </View>
-
-        {/* Main Actions */}
-        <View style={styles.actionsContainer}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          
-          <TouchableOpacity 
-            style={styles.actionCard} 
-            onPress={onOpenWebView}
-            activeOpacity={0.8}
-          >
-            <View style={styles.actionIcon}>🌐</View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Open Web View</Text>
-              <Text style={styles.actionDescription}>Browse Google in the app</Text>
-            </View>
-            <Text style={styles.actionArrow}>→</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.actionCard} 
-            onPress={onViewProfile}
-            activeOpacity={0.8}
-          >
-            <View style={styles.actionIcon}>👤</View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>View Profile</Text>
-              <Text style={styles.actionDescription}>See your account details</Text>
-            </View>
-            <Text style={styles.actionArrow}>→</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.actionCard} 
-            onPress={onOpenNotificationTest}
-            activeOpacity={0.8}
-          >
-            <View style={styles.actionIcon}>🔔</View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Test Notifications</Text>
-              <Text style={styles.actionDescription}>Send and manage push notifications</Text>
-            </View>
-            <Text style={styles.actionArrow}>→</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* User Info Card */}
-        <View style={styles.userCard}>
-          <Text style={styles.sectionTitle}>Account Information</Text>
-          <View style={styles.userDetail}>
-            <Text style={styles.userDetailLabel}>Email:</Text>
-            <Text style={styles.userDetailValue}>{user?.email}</Text>
-          </View>
-          <View style={styles.userDetail}>
-            <Text style={styles.userDetailLabel}>Name:</Text>
-            <Text style={styles.userDetailValue}>{user?.name}</Text>
-          </View>
-          <View style={styles.userDetail}>
-            <Text style={styles.userDetailLabel}>Status:</Text>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>
-                {user?.email_verified ? '✓ Verified' : '✗ Not Verified'}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Logout Section */}
-        <View style={styles.logoutSection}>
-          <TouchableOpacity 
-            style={styles.logoutButton} 
-            onPress={onLogout}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.logoutButtonText}>Sign Out</Text>
-          </TouchableOpacity>
-        </View>
+        <Header {...headerProps} />
+        <StatsSection />
+        <ActionsSection {...actionsProps} />
+        <UserInfoCard user={user} />
+        <LogoutSection onLogout={onLogout} />
       </ScrollView>
     </SafeAreaView>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

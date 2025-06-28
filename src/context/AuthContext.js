@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import useAuth from '../hooks/useAuth';
 
 // Create Auth Context
@@ -11,10 +11,13 @@ export const AuthProvider = ({ children }) => {
   // Check for existing session on app start
   useEffect(() => {
     auth.checkExistingSession();
-  }, []);
+  }, [auth.checkExistingSession]);
+
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => auth, [auth]);
 
   return (
-    <AuthContext.Provider value={auth}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

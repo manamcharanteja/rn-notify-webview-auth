@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import useNotifications from '../hooks/useNotifications';
 
 // Create Notification Context
@@ -8,8 +8,11 @@ const NotificationContext = createContext();
 export const NotificationProvider = ({ children }) => {
   const notifications = useNotifications();
 
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => notifications, [notifications]);
+
   return (
-    <NotificationContext.Provider value={notifications}>
+    <NotificationContext.Provider value={contextValue}>
       {children}
     </NotificationContext.Provider>
   );
